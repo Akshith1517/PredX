@@ -17,25 +17,25 @@
 // ════════════════════════════════════════════════════════════════
 //  USER CONFIGURATION — Fill in your local WiFi & PC IP details
 // ════════════════════════════════════════════════════════════════
-const char* WIFI_SSID       = "Prakash 4g";
-const char* WIFI_PASSWORD   = "Purvii@18";
+const char* WIFI_SSID        = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD    = "YOUR_WIFI_PASSWORD";
 
 // Run 'ipconfig' on your PC and enter its IPv4 address here
-const char* MQTT_BROKER     = "192.168.29.84"; 
-const int   MQTT_PORT       = 1883;
-const char* MQTT_USER       = "";               
-const char* MQTT_PASS       = "";
-const char* MQTT_CLIENT_ID  = "predx_esp32_001";
-const char* MQTT_TOPIC      = "factory/motor1/sensors";
-const char* MQTT_ALERT_TOPIC= "factory/motor1/alerts";
+const char* MQTT_BROKER      = "192.168.29.84"; 
+const int   MQTT_PORT        = 1883;
+const char* MQTT_USER        = "";                
+const char* MQTT_PASS        = "";
+const char* MQTT_CLIENT_ID   = "predx_esp32_001";
+const char* MQTT_TOPIC       = "factory/motor1/sensors";
+const char* MQTT_ALERT_TOPIC = "factory/motor1/alerts";
 const char* MQTT_STATUS_TOPIC= "factory/motor1/status";
 
-const char* MACHINE_ID      = "motor_001";
+const char* MACHINE_ID       = "motor_001";
 
 // NTP Configuration (IST UTC+5:30)
-const char* NTP_SERVER      = "pool.ntp.org";
-const long  GMT_OFFSET_SEC  = 19800;  
-const int   DST_OFFSET_SEC  = 0;
+const char* NTP_SERVER       = "pool.ntp.org";
+const long  GMT_OFFSET_SEC   = 19800;  
+const int   DST_OFFSET_SEC   = 0;
 
 // Telemetry & Hardware Tuning
 const unsigned long TELEMETRY_MS = 1000;  // Publish every 1 second
@@ -180,7 +180,6 @@ void getISOTimestamp(char* buf, size_t len) {
       return;
     }
   }
-  // Fallback ISO timestamp starting from boot epoch
   snprintf(buf, len, "2026-09-10T12:00:%02luZ", (millis() / 1000) % 60);
 }
 
@@ -257,7 +256,6 @@ void publishAlert(const char* severity, const char* type, const char* message, c
 }
 
 void checkThresholds(float tempC, float currentA, const VibStats& vib, float rpm) {
-  // Temperature
   if (tempC > TEMP_CRIT_C && !alertTemp) {
     publishAlert("critical", "Overtemperature", "Motor temperature critically high", "Thermal overload");
     beep(3, 120, 80);
@@ -270,7 +268,6 @@ void checkThresholds(float tempC, float currentA, const VibStats& vib, float rpm
     alertTemp = false;
   }
 
-  // Current
   if (currentA > CURRENT_CRIT_A && !alertCurrent) {
     publishAlert("critical", "Overcurrent", "Motor current exceeded safety threshold", "Mechanical jam / stall");
     beep(3, 150, 80);
@@ -283,7 +280,6 @@ void checkThresholds(float tempC, float currentA, const VibStats& vib, float rpm
     alertCurrent = false;
   }
 
-  // Vibration
   if (vib.valid) {
     if (vib.magnitude > VIB_MAG_CRIT && !alertVib) {
       publishAlert("critical", "Excessive Vibration", "Vibration magnitude critical", "Severe mechanical imbalance");
@@ -298,7 +294,6 @@ void checkThresholds(float tempC, float currentA, const VibStats& vib, float rpm
     }
   }
 
-  // RPM
   if (motorRunning) {
     if (rpm < RPM_MIN_WARN && !alertRpm) {
       publishAlert("warning", "Low RPM", "Shaft speed below expectation", "Belt slip or motor stalling");
@@ -348,7 +343,6 @@ void setup() {
   Wire.setTimeOut(50);
   ina219.begin();
 
-  // Wake MPU6050
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x6B);
   Wire.write(0x00);
@@ -422,6 +416,7 @@ void loop() {
     doc["timestamp"]    = ts;
     doc["temperature"]  = lastValidTemp;
     doc["current"]      = currentA;
+    doc["rpm"]          = (int)round(rpm);
 
     if (vib.valid) {
       doc["vibration_x"]         = vib.x;
@@ -447,7 +442,6 @@ void loop() {
                          (rpm < RPM_MIN_WARN) ? "warning" : "healthy";
     setStatusLEDs(health);
 
-    // Serial Dashboard
     Serial.printf("[%s] V: %.2fV | I: %.3fA | RPM: %4.0f | Vib: %.2fg | Temp: %.1f°C | MQTT: %s\n",
                   ts, busV, currentA, rpm, vib.magnitude, lastValidTemp, pubOk ? "SENT" : "OFFLINE");
 
